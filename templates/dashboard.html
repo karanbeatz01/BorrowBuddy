@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard · BorrowBuddy{% endblock %}
+
+{% block content %}
+<section class="dashboard-welcome">
+    <p class="eyebrow">Your BorrowBuddy space</p>
+    <h1>Good to see you, {{ user["username"] }}.</h1>
+    <p>This is your dashboard. Your campus sharing tools will grow from here.</p>
+</section>
+<section class="empty-state">
+    <span class="empty-icon" aria-hidden="true">✦</span>
+    <h2>Your lending journey starts here</h2>
+    <p>There are no items or borrow requests to show yet. This first phase is focused on accounts and a secure home for your future activity.</p>
+</section>
+{% endblock %}

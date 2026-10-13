@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}BorrowBuddy · Share on campus{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <p class="eyebrow">A little more sharing, a little less waste</p>
+    <h1>Good things are better <span>when shared.</span></h1>
+    <p class="hero-copy">
+        Borrow the things you need from people on campus, and lend the things
+        you already have. BorrowBuddy makes it easier to help each other out.
+    </p>
+    <div class="hero-actions">
+        {% if current_user %}
+            <a class="button button-primary" href="{{ url_for('dashboard') }}">Go to your dashboard</a>
+        {% else %}
+            <a class="button button-primary" href="{{ url_for('register') }}">Create your account</a>
+            <a class="button button-secondary" href="{{ url_for('login') }}">I already have an account</a>
+        {% endif %}
+    </div>
+</section>
+<section class="intro-note" aria-label="About BorrowBuddy">
+    <span class="note-mark" aria-hidden="true">B</span>
+    <p>Made for campus life, built around trust, and starting with the basics.</p>
+</section>
+{% endblock %}

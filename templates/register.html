@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Create account · BorrowBuddy{% endblock %}
+
+{% block content %}
+<section class="form-card">
+    <p class="eyebrow">Start sharing</p>
+    <h1>Create your account</h1>
+    <p class="form-intro">A few details and you’ll be part of the campus community.</p>
+    <form method="post" action="{{ url_for('register') }}">
+        <label for="username">Username</label>
+        <input id="username" name="username" type="text" minlength="3" maxlength="30"
+               pattern="[A-Za-z0-9_]{3,30}" autocomplete="username" required>
+        <small>Use 3-30 letters, numbers, or underscores.</small>
+
+        <label for="email">Email address</label>
+        <input id="email" name="email" type="email" maxlength="254"
+               autocomplete="email" required>
+
+        <label for="password">Password</label>
+        <div class="password-field">
+            <input id="password" name="password" type="password" minlength="8" maxlength="128"
+                   autocomplete="new-password" data-password-input required>
+            <button class="password-toggle" type="button" data-password-toggle
+                    aria-label="Show password" aria-pressed="false">Show</button>
+        </div>
+        <small>Choose 8-128 characters.</small>
+
+        <label for="confirm_password">Confirm password</label>
+        <input id="confirm_password" name="confirm_password" type="password"
+               minlength="8" maxlength="128" autocomplete="new-password" required>
+
+        <button class="button button-primary button-full" type="submit">Create account</button>
+    </form>
+    <p class="form-switch">Already registered? <a href="{{ url_for('login') }}">Log in</a></p>
+</section>
+{% endblock %}
