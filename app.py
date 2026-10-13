@@ -6,6 +6,7 @@ import sqlite3
 from functools import wraps
 
 from flask import Flask, flash, g, redirect, render_template, request, session, url_for
+from flask_wtf.csrf import CSRFProtect
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from db import close_db, get_db, init_db
@@ -30,6 +31,7 @@ app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
 )
+CSRFProtect(app)
 
 os.makedirs(app.instance_path, exist_ok=True)
 init_db(app)
@@ -57,7 +59,7 @@ def login_required(view):
     @wraps(view)
     def wrapped_view(**kwargs):
         if g.current_user is None:
-            flash("Please log in to view the dashboard.", "error")
+            flash("Please log in to continue.", "error")
             return redirect(url_for("login"))
         return view(**kwargs)
 
@@ -126,9 +128,9 @@ def register():
                     flash("Your account is ready. Please log in.", "success")
                     return redirect(url_for("login"))
 
-        return render_template("register.html"), 400
+        return render_template("register.html", username=username, email=email), 400
 
-    return render_template("register.html")
+    return render_template("register.html", username="", email="")
 
 
 @app.route("/login", methods=("GET", "POST"))

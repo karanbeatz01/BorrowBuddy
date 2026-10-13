@@ -8,6 +8,7 @@
     <h1>Log in</h1>
     <p class="form-intro">Pick up where your campus community left off.</p>
     <form method="post" action="{{ url_for('login') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label for="identity">Username or email</label>
         <input id="identity" name="identity" type="text" autocomplete="username" required>
 

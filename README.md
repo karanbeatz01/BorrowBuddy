@@ -9,7 +9,8 @@ use. The item and borrow-request workflow is intentionally not implemented yet.
 - Python 3
 - macOS Terminal (or another shell)
 
-Flask is the only third-party Python dependency. SQLite is included with Python.
+Flask and Flask-WTF are the third-party Python dependencies. SQLite is included
+with Python.
 
 ## First-time setup on macOS
 
@@ -43,7 +44,9 @@ Git. To use a different database file for local testing, set
 
 The initial schema contains `users`, `items`, and `borrow_requests`, with
 primary/foreign keys, uniqueness and value checks, and creation/update
-timestamps. No item listing or borrowing actions are available in Phase 1.
+timestamps. Items also have a location; borrow requests have proposed return,
+due, and returned timestamps. The database is created when the app starts. No
+item listing or borrowing actions are available in Phase 1.
 
 ## Phase 1 features
 
@@ -51,6 +54,10 @@ timestamps. No item listing or borrowing actions are available in Phase 1.
   numbers, or underscores.
 - Passwords must be 8-128 characters and are stored as Werkzeug password hashes,
   never as plain text.
+- Every POST form includes a CSRF token. Flask-WTF checks that the token matches
+  the user's signed session before accepting the request. A different website
+  cannot normally read that session token, so it cannot silently submit an
+  authenticated action on the user's behalf.
 - Log in using a username or email. Login errors do not disclose whether the
   account exists.
 - Log out using a POST form and access a dashboard only after logging in.
@@ -58,5 +65,5 @@ timestamps. No item listing or borrowing actions are available in Phase 1.
   query strings.
 
 This is a beginner/local development app, not a production deployment. Before
-putting it on the public internet, add a maintained CSRF protection solution,
-HTTPS, production hosting configuration, and operational safeguards.
+putting it on the public internet, configure HTTPS, secure cookie settings,
+production hosting, and operational safeguards.

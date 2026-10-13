@@ -23,10 +23,11 @@ CREATE TABLE IF NOT EXISTS items (
     name TEXT NOT NULL CHECK (length(trim(name)) BETWEEN 1 AND 100),
     description TEXT NOT NULL DEFAULT '',
     category TEXT NOT NULL DEFAULT '',
+    location TEXT NOT NULL DEFAULT '',
     item_condition TEXT NOT NULL DEFAULT 'good'
         CHECK (item_condition IN ('new', 'good', 'fair', 'worn')),
     status TEXT NOT NULL DEFAULT 'available'
-        CHECK (status IN ('available', 'unavailable')),
+        CHECK (status IN ('available', 'unavailable', 'borrowed')),
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (owner_id) REFERENCES users (id) ON DELETE CASCADE
@@ -37,8 +38,11 @@ CREATE TABLE IF NOT EXISTS borrow_requests (
     item_id INTEGER NOT NULL,
     borrower_id INTEGER NOT NULL,
     owner_id INTEGER NOT NULL,
+    proposed_return_date TEXT,
+    due_date TEXT,
+    returned_at TEXT,
     status TEXT NOT NULL DEFAULT 'pending'
-        CHECK (status IN ('pending', 'approved', 'rejected', 'cancelled')),
+        CHECK (status IN ('pending', 'approved', 'rejected', 'cancelled', 'returned')),
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CHECK (borrower_id <> owner_id),
@@ -77,6 +81,10 @@ def init_db(app):
     """Create the schema if this is the first time the app is started."""
     database_path = app.config["DATABASE"]
     os.makedirs(os.path.dirname(os.path.abspath(database_path)), exist_ok=True)
-    with sqlite3.connect(database_path) as connection:
+    connection = sqlite3.connect(database_path)
+    try:
         connection.execute("PRAGMA foreign_keys = ON")
         connection.executescript(SCHEMA)
+        connection.commit()
+    finally:
+        connection.close()
