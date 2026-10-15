@@ -62,6 +62,26 @@
                     <div><dt>Pickup</dt><dd>{{ item['location'] }}</dd></div>
                     <div><dt>Listed by</dt><dd>{{ item['owner_username'] }}</dd></div>
                 </dl>
+                {% if g.current_user %}
+                    {% if item['pending_request_id'] %}
+                        <p class="pending-note">
+                            Pending request · proposed return {{ item['pending_return_date'] }}
+                        </p>
+                        <a class="button button-secondary" href="{{ url_for('my_requests') }}">View my request</a>
+                    {% else %}
+                        <form class="request-form" method="post"
+                              action="{{ url_for('request_item', item_id=item['id']) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <label for="return-date-{{ item['id'] }}">Proposed return date</label>
+                            <div class="request-form-row">
+                                <input id="return-date-{{ item['id'] }}" name="proposed_return_date"
+                                       type="date" min="{{ minimum_return_date }}"
+                                       max="{{ maximum_return_date }}" required>
+                                <button class="button button-primary" type="submit">Request to borrow</button>
+                            </div>
+                        </form>
+                    {% endif %}
+                {% endif %}
             </article>
         {% endfor %}
     </section>

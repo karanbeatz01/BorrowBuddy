@@ -519,6 +519,17 @@ small {
     color: #77521a;
 }
 
+.status-approved {
+    background: #e5eff8;
+    color: #285476;
+}
+
+.status-rejected,
+.status-cancelled {
+    background: #f0efeb;
+    color: #5f686b;
+}
+
 .item-category {
     color: var(--muted);
     font-size: 0.8rem;
@@ -643,6 +654,93 @@ small {
     margin-bottom: 25px;
 }
 
+.request-list {
+    display: grid;
+    gap: 14px;
+}
+
+.request-card {
+    padding: 22px;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    background: var(--surface);
+}
+
+.request-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 17px;
+}
+
+.request-heading h2 {
+    margin-bottom: 4px;
+    font-size: 1.25rem;
+    letter-spacing: -0.03em;
+}
+
+.request-heading h2 a {
+    color: var(--navy);
+    text-decoration: none;
+}
+
+.request-heading h2 a:hover {
+    color: var(--teal-dark);
+    text-decoration: underline;
+}
+
+.request-heading p {
+    margin: 0;
+    color: var(--muted);
+}
+
+.request-facts {
+    max-width: 500px;
+    margin-bottom: 16px;
+}
+
+.request-form {
+    margin-top: 18px;
+}
+
+.request-form label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.88rem;
+    font-weight: 700;
+}
+
+.request-form-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.request-form-row input {
+    max-width: 220px;
+}
+
+.request-form small {
+    margin-top: 8px;
+}
+
+.pending-note {
+    margin: 18px 0 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #e9f5ee;
+    color: #245b3c;
+    font-size: 0.9rem;
+    font-weight: 650;
+}
+
+.detail-request-form {
+    max-width: 500px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+}
+
 .optional-label {
     color: var(--muted);
     font-weight: 400;
@@ -724,6 +822,16 @@ small {
 
     .filter-actions {
         flex-wrap: wrap;
+    }
+
+    .request-heading,
+    .request-form-row {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .request-form-row input {
+        max-width: none;
     }
 }
 

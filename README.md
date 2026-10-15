@@ -1,8 +1,8 @@
 # BorrowBuddy
 
-BorrowBuddy is a campus item-lending app. Phase 1 provides account registration,
-login/logout, and a protected dashboard. Phase 2 adds item listings, browsing,
-and search. Borrow requests are not implemented.
+BorrowBuddy is a campus item-lending app. It provides account access, item
+listings, browsing/search, and Phase 3 borrow requests. Returns, return
+confirmation, and overdue tracking are not implemented.
 
 ## Requirements
 
@@ -31,7 +31,9 @@ export BORROWBUDDY_SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token
 python app.py
 ```
 
-Open <http://127.0.0.1:5000>. Stop the local development server with Control-C.
+Open <http://127.0.0.1:5001>. The app listens on port 5001 so it does not
+conflict with macOS AirPlay using port 5000. Stop the local development server
+with Control-C.
 The generated key remains available in this Terminal session; set it again in a
 new session (existing login cookies will no longer be valid after changing it).
 
@@ -45,8 +47,7 @@ Git. To use a different database file for local testing, set
 The schema contains `users`, `items`, and `borrow_requests`, with primary/foreign
 keys, uniqueness and value checks, and creation/update timestamps. Items include
 a location; borrow requests include proposed return, due, and returned
-timestamps. The database is created when the app starts. Borrow request actions
-are not available.
+timestamps. The database is created when the app starts.
 
 ## Features
 
@@ -71,6 +72,13 @@ are not available.
   Availability can be switched only between `available` and `unavailable`;
   owners cannot set an item to `borrowed`.
 - Dashboard totals are counted from the SQLite database.
+- Borrow requests use a proposed return date no more than 30 days ahead.
+  Approval is an atomic transaction: it marks the item borrowed, sets the due
+  date from the proposal, and rejects competing pending requests. Return and
+  overdue handling are not included.
+- Owners can approve or reject incoming pending requests; borrowers can cancel
+  their own pending requests. The database's partial unique index permits only
+  one pending request per borrower/item pair.
 
 This is a beginner/local development app, not a production deployment. Before
 putting it on the public internet, configure HTTPS, secure cookie settings,

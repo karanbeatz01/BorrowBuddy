@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}My requests · BorrowBuddy{% endblock %}
+
+{% block content %}
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">Your borrowing</p>
+        <h1>My requests</h1>
+        <p>See what you’ve asked to borrow and each request’s status.</p>
+    </div>
+</section>
+
+{% if requests %}
+    <section class="request-list" aria-label="Requests you made">
+        {% for borrow_request in requests %}
+            <article class="request-card">
+                <div class="request-heading">
+                    <div>
+                        <h2><a href="{{ url_for('item_detail', item_id=borrow_request['item_id']) }}">{{ borrow_request['item_name'] }}</a></h2>
+                        <p>Owner: {{ borrow_request['owner_username'] }}</p>
+                    </div>
+                    <span class="status-pill status-{{ borrow_request['status'] }}">{{ borrow_request['status']|capitalize }}</span>
+                </div>
+                <dl class="item-facts request-facts">
+                    <div><dt>Proposed return</dt><dd>{{ borrow_request['proposed_return_date'] }}</dd></div>
+                    {% if borrow_request['due_date'] %}
+                        <div><dt>Due date</dt><dd>{{ borrow_request['due_date'] }}</dd></div>
+                    {% endif %}
+                </dl>
+                {% if borrow_request['status'] == 'pending' %}
+                    <form method="post" action="{{ url_for('cancel_request', request_id=borrow_request['id']) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="button button-secondary" type="submit">Cancel request</button>
+                    </form>
+                {% endif %}
+            </article>
+        {% endfor %}
+    </section>
+{% else %}
+    <section class="empty-state">
+        <span class="empty-icon" aria-hidden="true">⌕</span>
+        <h2>No requests yet</h2>
+        <p>When you request an available item, you can track it here.</p>
+        <a class="button button-primary empty-action" href="{{ url_for('browse') }}">Browse items</a>
+    </section>
+{% endif %}
+{% endblock %}

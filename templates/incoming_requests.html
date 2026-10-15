@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Incoming requests · BorrowBuddy{% endblock %}
+
+{% block content %}
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">Your items</p>
+        <h1>Incoming requests</h1>
+        <p>Review requests from other students for things you’ve listed.</p>
+    </div>
+</section>
+
+{% if requests %}
+    <section class="request-list" aria-label="Incoming borrow requests">
+        {% for borrow_request in requests %}
+            <article class="request-card">
+                <div class="request-heading">
+                    <div>
+                        <h2><a href="{{ url_for('item_detail', item_id=borrow_request['item_id']) }}">{{ borrow_request['item_name'] }}</a></h2>
+                        <p>Requested by {{ borrow_request['borrower_username'] }}</p>
+                    </div>
+                    <span class="status-pill status-{{ borrow_request['status'] }}">{{ borrow_request['status']|capitalize }}</span>
+                </div>
+                <dl class="item-facts request-facts">
+                    <div><dt>Proposed return</dt><dd>{{ borrow_request['proposed_return_date'] }}</dd></div>
+                    {% if borrow_request['due_date'] %}
+                        <div><dt>Due date</dt><dd>{{ borrow_request['due_date'] }}</dd></div>
+                    {% endif %}
+                </dl>
+                {% if borrow_request['status'] == 'pending' %}
+                    <div class="item-actions">
+                        <form method="post" action="{{ url_for('approve_request', request_id=borrow_request['id']) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button class="button button-primary" type="submit">Approve</button>
+                        </form>
+                        <form method="post" action="{{ url_for('reject_request', request_id=borrow_request['id']) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button class="button button-secondary" type="submit">Reject</button>
+                        </form>
+                    </div>
+                {% endif %}
+            </article>
+        {% endfor %}
+    </section>
+{% else %}
+    <section class="empty-state">
+        <span class="empty-icon" aria-hidden="true">✉</span>
+        <h2>No incoming requests</h2>
+        <p>Requests for your items will appear here.</p>
+    </section>
+{% endif %}
+{% endblock %}

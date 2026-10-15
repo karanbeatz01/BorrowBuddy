@@ -56,6 +56,9 @@ CREATE INDEX IF NOT EXISTS idx_borrow_requests_borrower_id
     ON borrow_requests (borrower_id);
 CREATE INDEX IF NOT EXISTS idx_borrow_requests_item_id
     ON borrow_requests (item_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_one_pending_per_borrower_item
+    ON borrow_requests (item_id, borrower_id)
+    WHERE status = 'pending';
 """
 
 
