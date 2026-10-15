@@ -1,8 +1,8 @@
 # BorrowBuddy
 
 BorrowBuddy is a campus item-lending app. Phase 1 provides account registration,
-login/logout, a protected dashboard, and the SQLite tables that later phases can
-use. The item and borrow-request workflow is intentionally not implemented yet.
+login/logout, and a protected dashboard. Phase 2 adds item listings, browsing,
+and search. Borrow requests are not implemented.
 
 ## Requirements
 
@@ -42,13 +42,13 @@ missing tables. The `instance/` folder contains local data and is ignored by
 Git. To use a different database file for local testing, set
 `BORROWBUDDY_DATABASE` to its path before starting the app.
 
-The initial schema contains `users`, `items`, and `borrow_requests`, with
-primary/foreign keys, uniqueness and value checks, and creation/update
-timestamps. Items also have a location; borrow requests have proposed return,
-due, and returned timestamps. The database is created when the app starts. No
-item listing or borrowing actions are available in Phase 1.
+The schema contains `users`, `items`, and `borrow_requests`, with primary/foreign
+keys, uniqueness and value checks, and creation/update timestamps. Items include
+a location; borrow requests include proposed return, due, and returned
+timestamps. The database is created when the app starts. Borrow request actions
+are not available.
 
-## Phase 1 features
+## Features
 
 - Register with a unique username and email; usernames are 3-30 letters,
   numbers, or underscores.
@@ -63,6 +63,14 @@ item listing or borrowing actions are available in Phase 1.
 - Log out using a POST form and access a dashboard only after logging in.
 - SQL values are passed through SQLite placeholders rather than inserted into
   query strings.
+- Add and manage your items from **My items**. Item categories and condition
+  values are restricted to the choices shown in the form.
+- Browse and filter available items listed by other users. Search treats `%`
+  and `_` as ordinary characters rather than wildcard operators.
+- Item edit, delete, and availability actions verify ownership on the server.
+  Availability can be switched only between `available` and `unavailable`;
+  owners cannot set an item to `borrowed`.
+- Dashboard totals are counted from the SQLite database.
 
 This is a beginner/local development app, not a production deployment. Before
 putting it on the public internet, configure HTTPS, secure cookie settings,

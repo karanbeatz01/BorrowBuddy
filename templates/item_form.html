@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} · BorrowBuddy{% endblock %}
+
+{% block content %}
+<section class="form-card item-form-card">
+    <p class="eyebrow">Your campus shelf</p>
+    <h1>{{ title }}</h1>
+    <p class="form-intro">Add clear details so another student knows what you’re sharing.</p>
+    <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <label for="name">Item name</label>
+        <input id="name" name="name" type="text" maxlength="100"
+               value="{{ item.get('name', '') }}" required>
+
+        <label for="description">Description <span class="optional-label">(optional)</span></label>
+        <textarea id="description" name="description" maxlength="1000"
+                  rows="5">{{ item.get('description', '') }}</textarea>
+        <small>Up to 1,000 characters.</small>
+
+        <label for="category">Category</label>
+        <select id="category" name="category" required>
+            <option value="">Choose a category</option>
+            {% for category in categories %}
+                <option value="{{ category }}" {% if item.get('category') == category %}selected{% endif %}>
+                    {{ category }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <label for="item_condition">Condition</label>
+        <select id="item_condition" name="item_condition" required>
+            <option value="">Choose a condition</option>
+            {% for condition in conditions %}
+                <option value="{{ condition }}" {% if item.get('item_condition') == condition %}selected{% endif %}>
+                    {{ condition|capitalize }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <label for="location">Pickup location</label>
+        <input id="location" name="location" type="text" maxlength="120"
+               value="{{ item.get('location', '') }}" required>
+        <small>Use a general campus location; do not include private details.</small>
+
+        <button class="button button-primary button-full" type="submit">{{ button_label }}</button>
+    </form>
+    <p class="form-switch"><a href="{{ url_for('my_items') }}">Back to my items</a></p>
+</section>
+{% endblock %}

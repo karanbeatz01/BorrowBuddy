@@ -40,7 +40,9 @@ a:hover {
 
 a:focus-visible,
 button:focus-visible,
-input:focus-visible {
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
     outline: 3px solid #68aaa1;
     outline-offset: 3px;
 }
@@ -267,8 +269,27 @@ input {
     font: inherit;
 }
 
-input:focus-visible {
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
     border-color: var(--teal);
+}
+
+textarea,
+select {
+    width: 100%;
+    min-height: 46px;
+    padding: 10px 12px;
+    border: 1px solid #cbd1ce;
+    border-radius: 7px;
+    background: #fff;
+    color: var(--navy);
+    font: inherit;
+}
+
+textarea {
+    min-height: 120px;
+    resize: vertical;
 }
 
 small {
@@ -362,6 +383,271 @@ small {
     color: var(--muted);
 }
 
+.page-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding-block: 22px 28px;
+}
+
+.page-heading h1 {
+    margin-bottom: 7px;
+    font-size: clamp(2rem, 6vw, 2.8rem);
+    letter-spacing: -0.055em;
+    line-height: 1.14;
+}
+
+.page-heading p:last-child {
+    margin-bottom: 0;
+    color: var(--muted);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.stat-card {
+    padding: 24px;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    background: var(--surface);
+}
+
+.stat-card .eyebrow {
+    margin-bottom: 4px;
+}
+
+.stat-number {
+    margin: 0 0 8px;
+    font-size: 2.7rem;
+    font-weight: 800;
+    letter-spacing: -0.07em;
+    line-height: 1.1;
+}
+
+.dashboard-actions {
+    margin-top: 22px;
+}
+
+.filter-panel {
+    display: grid;
+    grid-template-columns: 2fr 1.3fr 1fr 1.3fr auto;
+    align-items: end;
+    gap: 12px;
+    margin-bottom: 28px;
+    padding: 20px;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    background: var(--surface);
+}
+
+.filter-field label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 0.88rem;
+    font-weight: 700;
+}
+
+.filter-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.filter-actions .button {
+    min-height: 44px;
+}
+
+.clear-link,
+.back-link {
+    font-size: 0.9rem;
+    font-weight: 650;
+    white-space: nowrap;
+}
+
+.results-summary {
+    margin-bottom: 14px;
+    color: var(--muted);
+    font-size: 0.91rem;
+}
+
+.item-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.item-card,
+.detail-card {
+    min-width: 0;
+    padding: 22px;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    background: var(--surface);
+    box-shadow: 0 9px 26px rgb(23 43 58 / 4%);
+}
+
+.item-card-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 9px;
+    border-radius: 999px;
+    background: #e9f5ee;
+    color: #245b3c;
+    font-size: 0.76rem;
+    font-weight: 750;
+}
+
+.status-unavailable {
+    background: #f0efeb;
+    color: #5f686b;
+}
+
+.status-borrowed {
+    background: #fff1db;
+    color: #77521a;
+}
+
+.item-category {
+    color: var(--muted);
+    font-size: 0.8rem;
+    text-align: right;
+}
+
+.item-card h2 {
+    margin-bottom: 8px;
+    font-size: 1.3rem;
+    letter-spacing: -0.035em;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+
+.item-card h2 a {
+    color: var(--navy);
+    text-decoration: none;
+}
+
+.item-card h2 a:hover {
+    color: var(--teal-dark);
+    text-decoration: underline;
+}
+
+.item-description {
+    min-height: 3.2em;
+    margin-bottom: 17px;
+    color: var(--muted);
+    overflow-wrap: anywhere;
+}
+
+.item-facts {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+}
+
+.item-facts > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.item-facts dt {
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+.item-facts dd {
+    margin: 0;
+    font-size: 0.88rem;
+    font-weight: 650;
+    text-align: right;
+    overflow-wrap: anywhere;
+}
+
+.item-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 20px;
+}
+
+.item-actions form {
+    margin: 0;
+}
+
+.status-note {
+    align-self: center;
+    color: var(--muted);
+    font-size: 0.8rem;
+}
+
+.item-actions .button {
+    min-height: 39px;
+    padding: 7px 10px;
+    font-size: 0.83rem;
+}
+
+.button-danger {
+    border-color: #e4c7c1;
+    background: #fff7f4;
+    color: #8e3427;
+}
+
+.button-danger:hover {
+    background: var(--error-bg);
+}
+
+.empty-action {
+    margin-top: 19px;
+}
+
+.detail-card {
+    width: min(100%, 760px);
+    margin: 22px auto 0;
+    padding: clamp(24px, 5vw, 42px);
+}
+
+.detail-card > .back-link {
+    display: inline-block;
+    margin-bottom: 30px;
+}
+
+.detail-card h1 {
+    margin: 0 0 12px;
+    font-size: clamp(2rem, 6vw, 3rem);
+    letter-spacing: -0.06em;
+    line-height: 1.1;
+    overflow-wrap: anywhere;
+}
+
+.detail-description {
+    margin-bottom: 25px;
+    color: var(--muted);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.detail-facts {
+    max-width: 500px;
+    margin-bottom: 25px;
+}
+
+.optional-label {
+    color: var(--muted);
+    font-weight: 400;
+}
+
 .site-footer {
     padding-block: 20px 28px;
     border-top: 1px solid rgb(23 43 58 / 8%);
@@ -385,7 +671,9 @@ small {
     }
 
     .nav-links {
-        gap: 12px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px 12px;
     }
 
     .nav-links a,
@@ -413,5 +701,43 @@ small {
 
     .form-card {
         margin-top: 8px;
+    }
+
+    .page-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .stats-grid,
+    .item-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .filter-panel {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .filter-keyword,
+    .filter-actions {
+        grid-column: 1 / -1;
+    }
+
+    .filter-actions {
+        flex-wrap: wrap;
+    }
+}
+
+@media (min-width: 541px) and (max-width: 850px) {
+    .item-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .filter-panel {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .filter-keyword,
+    .filter-actions {
+        grid-column: 1 / -1;
     }
 }

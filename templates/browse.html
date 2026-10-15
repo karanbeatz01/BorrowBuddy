@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Browse items · BorrowBuddy{% endblock %}
+
+{% block content %}
+<section class="page-heading browse-heading">
+    <div>
+        <p class="eyebrow">Good things, shared</p>
+        <h1>Browse campus items</h1>
+        <p>Search available items listed by other students.</p>
+    </div>
+</section>
+
+<form class="filter-panel" method="get" action="{{ url_for('browse') }}">
+    <div class="filter-field filter-keyword">
+        <label for="q">Keyword</label>
+        <input id="q" name="q" type="search" maxlength="100"
+               placeholder="Name or description" value="{{ filters.q }}">
+    </div>
+    <div class="filter-field">
+        <label for="category">Category</label>
+        <select id="category" name="category">
+            <option value="">All categories</option>
+            {% for category in categories %}
+                <option value="{{ category }}" {% if filters.category == category %}selected{% endif %}>{{ category }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="filter-field">
+        <label for="condition">Condition</label>
+        <select id="condition" name="condition">
+            <option value="">Any condition</option>
+            {% for condition in conditions %}
+                <option value="{{ condition }}" {% if filters.condition == condition %}selected{% endif %}>{{ condition|capitalize }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="filter-field">
+        <label for="location">Location</label>
+        <input id="location" name="location" type="search" maxlength="120"
+               placeholder="Campus area" value="{{ filters.location }}">
+    </div>
+    <div class="filter-actions">
+        <button class="button button-primary" type="submit">Search</button>
+        <a class="clear-link" href="{{ url_for('browse') }}">Clear filters</a>
+    </div>
+</form>
+
+{% if items %}
+    <p class="results-summary">{{ items|length }} available {{ 'item' if items|length == 1 else 'items' }}</p>
+    <section class="item-grid" aria-label="Available items">
+        {% for item in items %}
+            <article class="item-card">
+                <div class="item-card-heading">
+                    <span class="status-pill status-available">Available</span>
+                    <span class="item-category">{{ item['category'] }}</span>
+                </div>
+                <h2><a href="{{ url_for('item_detail', item_id=item['id']) }}">{{ item['name'] }}</a></h2>
+                <p class="item-description">{{ item['description'] or 'No description added.' }}</p>
+                <dl class="item-facts">
+                    <div><dt>Condition</dt><dd>{{ item['item_condition']|capitalize }}</dd></div>
+                    <div><dt>Pickup</dt><dd>{{ item['location'] }}</dd></div>
+                    <div><dt>Listed by</dt><dd>{{ item['owner_username'] }}</dd></div>
+                </dl>
+            </article>
+        {% endfor %}
+    </section>
+{% else %}
+    <section class="empty-state">
+        <span class="empty-icon" aria-hidden="true">⌕</span>
+        <h2>No matching items yet</h2>
+        <p>Try a different keyword or filter, or check back when more campus items are shared.</p>
+        {% if filters.q or filters.category or filters.condition or filters.location %}
+            <a class="button button-secondary empty-action" href="{{ url_for('browse') }}">Clear filters</a>
+        {% endif %}
+    </section>
+{% endif %}
+{% endblock %}

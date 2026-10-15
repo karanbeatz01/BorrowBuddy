@@ -6,11 +6,22 @@
 <section class="dashboard-welcome">
     <p class="eyebrow">Your BorrowBuddy space</p>
     <h1>Good to see you, {{ user["username"] }}.</h1>
-    <p>This is your dashboard. Your campus sharing tools will grow from here.</p>
+    <p>Keep track of the things you share with your campus community.</p>
 </section>
-<section class="empty-state">
-    <span class="empty-icon" aria-hidden="true">✦</span>
-    <h2>Your lending journey starts here</h2>
-    <p>There are no items or borrow requests to show yet. This first phase is focused on accounts and a secure home for your future activity.</p>
+<section class="stats-grid" aria-label="Item totals">
+    <article class="stat-card">
+        <p class="eyebrow">Your items</p>
+        <p class="stat-number">{{ my_item_count }}</p>
+        <a href="{{ url_for('my_items') }}">View your items</a>
+    </article>
+    <article class="stat-card">
+        <p class="eyebrow">Available to browse</p>
+        <p class="stat-number">{{ available_item_count }}</p>
+        <a href="{{ url_for('browse') }}">Browse campus items</a>
+    </article>
 </section>
+<div class="hero-actions dashboard-actions">
+    <a class="button button-primary" href="{{ url_for('add_item') }}">Add an item</a>
+    <a class="button button-secondary" href="{{ url_for('my_items') }}">Manage my items</a>
+</div>
 {% endblock %}

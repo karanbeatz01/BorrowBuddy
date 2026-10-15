@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}{{ item['name'] }} · BorrowBuddy{% endblock %}
+
+{% block content %}
+<article class="detail-card">
+    <a class="back-link" href="{{ url_for('browse') }}">← Back to browsing</a>
+    <div class="item-card-heading">
+        <span class="status-pill status-{{ item['status'] }}">{{ item['status']|capitalize }}</span>
+        <span class="item-category">{{ item['category'] }}</span>
+    </div>
+    <h1>{{ item['name'] }}</h1>
+    <p class="detail-description">{{ item['description'] or 'The owner has not added a description.' }}</p>
+    <dl class="item-facts detail-facts">
+        <div><dt>Condition</dt><dd>{{ item['item_condition']|capitalize }}</dd></div>
+        <div><dt>Pickup location</dt><dd>{{ item['location'] }}</dd></div>
+        <div><dt>Listed by</dt><dd>{{ item['owner_username'] }}</dd></div>
+        <div><dt>Status</dt><dd>{{ item['status']|capitalize }}</dd></div>
+    </dl>
+    {% if g.current_user and g.current_user['id'] == item['owner_id'] %}
+        <a class="button button-secondary" href="{{ url_for('edit_item', item_id=item['id']) }}">Edit your item</a>
+    {% endif %}
+</article>
+{% endblock %}
