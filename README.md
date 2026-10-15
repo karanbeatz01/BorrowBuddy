@@ -31,11 +31,56 @@ export BORROWBUDDY_SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token
 python app.py
 ```
 
-Open <http://127.0.0.1:5001>. The app listens on port 5001 so it does not
-conflict with macOS AirPlay using port 5000. Stop the local development server
-with Control-C. The key remains available only in that Terminal session; set it
-again in a new session (existing login cookies will no longer be valid after
-changing it).
+Open <http://127.0.0.1:5001>, register your account, then stop the server with
+Control-C. The app listens on port 5001 so it does not conflict with macOS
+AirPlay using port 5000. In the same Terminal session, grant your account admin
+access using its registered username:
+
+```sh
+flask --app app make-admin YOUR_USERNAME
+```
+
+Start the app again with `python app.py`. The Admin link will appear when you
+log in to the account you promoted. The secret key remains available only in
+that Terminal session; set it again in a new session (existing login cookies
+will no longer be valid after changing it).
+
+## Project structure
+
+```text
+BorrowBuddy/
+├── app.py
+├── db.py
+├── requirements.txt
+├── README.md
+├── .gitignore
+├── templates/
+│   ├── base.html
+│   ├── index.html
+│   ├── register.html
+│   ├── login.html
+│   ├── dashboard.html
+│   ├── browse.html
+│   ├── item_detail.html
+│   ├── item_form.html
+│   ├── my_items.html
+│   ├── incoming_requests.html
+│   ├── my_requests.html
+│   ├── admin.html
+│   ├── admin_items.html
+│   ├── 403.html
+│   ├── 404.html
+│   └── 500.html
+├── static/
+│   ├── css/
+│   │   └── style.css
+│   └── js/
+│       └── main.js
+├── tests/
+│   └── test_app.py
+├── instance/          # Local database; ignored by Git
+└── .venv/             # Project-local Python environment; ignored by Git
+```
 
 ## Security settings
 
@@ -107,8 +152,8 @@ Run the tests from the project folder with the virtual environment active:
 python -m unittest discover -s tests -v
 ```
 
-The tests use a temporary SQLite file inside `instance/` and remove it after
-the test run. They never use or delete the normal `instance/borrowbuddy.sqlite`
+The tests use temporary SQLite files inside `instance/` and remove them
+afterwards. They never use or delete the normal `instance/borrowbuddy.sqlite`
 database.
 
 ## Deploy
