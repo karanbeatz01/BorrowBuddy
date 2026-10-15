@@ -186,6 +186,28 @@ def dashboard():
         "SELECT COUNT(*) AS count FROM items WHERE owner_id = ?",
         (g.current_user["id"],),
     ).fetchone()["count"]
+    currently_borrowing_count = database.execute(
+        """
+        SELECT COUNT(*) AS count
+        FROM borrow_requests
+        WHERE borrower_id = ? AND status = ? AND returned_at IS NULL
+        """,
+        (g.current_user["id"], "approved"),
+    ).fetchone()["count"]
+    overdue_lent_count = database.execute(
+        f"""
+        SELECT COUNT(*) AS count FROM borrow_requests
+        WHERE owner_id = ? AND {overdue_condition()}
+        """,
+        (g.current_user["id"],),
+    ).fetchone()["count"]
+    overdue_borrowed_count = database.execute(
+        f"""
+        SELECT COUNT(*) AS count FROM borrow_requests
+        WHERE borrower_id = ? AND {overdue_condition()}
+        """,
+        (g.current_user["id"],),
+    ).fetchone()["count"]
     available_item_count = database.execute(
         "SELECT COUNT(*) AS count FROM items WHERE status = ?",
         ("available",),
@@ -210,6 +232,9 @@ def dashboard():
         incoming_pending_count=incoming_pending_count,
         outgoing_pending_count=outgoing_pending_count,
         lent_out_count=lent_out_count,
+        currently_borrowing_count=currently_borrowing_count,
+        overdue_lent_count=overdue_lent_count,
+        overdue_borrowed_count=overdue_borrowed_count,
     )
 
 
@@ -276,6 +301,27 @@ def request_item_query(item_id, borrower_id):
         """,
         (item_id, borrower_id, "pending"),
     ).fetchone()
+
+
+def overdue_condition(table="borrow_requests"):
+    """Share the overdue rule so dashboard totals and page badges agree."""
+    return (
+        f"{table}.status = 'approved' "
+        f"AND {table}.due_date < date('now') "
+        f"AND {table}.returned_at IS NULL"
+    )
+
+
+def overdue_select_fields(table="borrow_requests"):
+    """Compute overdue state and age directly from the database date."""
+    condition = overdue_condition(table)
+    return f"""
+        CASE WHEN {condition} THEN 1 ELSE 0 END AS is_overdue,
+        CASE WHEN {condition}
+             THEN CAST(julianday(date('now')) - julianday({table}.due_date) AS INTEGER)
+             ELSE 0
+        END AS days_overdue
+    """
 
 
 def escape_like(value):
@@ -415,10 +461,11 @@ def request_item(item_id):
 @app.route("/incoming-requests")
 @login_required
 def incoming_requests():
-    requests_for_owner = get_db().execute(
-        """
+    requests = get_db().execute(
+        f"""
         SELECT borrow_requests.*, items.name AS item_name,
-               items.status AS item_status, users.username AS borrower_username
+               items.status AS item_status, users.username AS borrower_username,
+               {overdue_select_fields()}
         FROM borrow_requests
         JOIN items ON items.id = borrow_requests.item_id
         JOIN users ON users.id = borrow_requests.borrower_id
@@ -428,15 +475,22 @@ def incoming_requests():
         """,
         (g.current_user["id"],),
     ).fetchall()
-    return render_template("incoming_requests.html", requests=requests_for_owner)
+    active_requests = [row for row in requests if row["status"] != "returned"]
+    history_requests = [row for row in requests if row["status"] == "returned"]
+    return render_template(
+        "incoming_requests.html",
+        requests=active_requests,
+        history_requests=history_requests,
+    )
 
 
 @app.route("/my-requests")
 @login_required
 def my_requests():
     requests_made = get_db().execute(
-        """
+        f"""
         SELECT borrow_requests.*, items.name AS item_name,
+               {overdue_select_fields()},
                users.username AS owner_username
         FROM borrow_requests
         JOIN items ON items.id = borrow_requests.item_id
@@ -447,7 +501,13 @@ def my_requests():
         """,
         (g.current_user["id"],),
     ).fetchall()
-    return render_template("my_requests.html", requests=requests_made)
+    active_requests = [row for row in requests_made if row["status"] != "returned"]
+    history_requests = [row for row in requests_made if row["status"] == "returned"]
+    return render_template(
+        "my_requests.html",
+        requests=active_requests,
+        history_requests=history_requests,
+    )
 
 
 def owned_request_or_404(request_id):
@@ -470,6 +530,112 @@ def borrower_request_or_404(request_id):
     if borrow_request is None:
         abort(404)
     return borrow_request
+
+
+@app.route("/requests/<int:request_id>/report-return", methods=("POST",))
+@login_required
+def report_return(request_id):
+    """Let only the borrower report an approved loan as ready for confirmation."""
+    borrow_request = borrower_request_or_404(request_id)
+    if borrow_request["status"] != "approved":
+        flash("Only approved requests can have a return reported.", "error")
+        return redirect(url_for("my_requests"))
+    if borrow_request["return_reported_at"] is not None:
+        flash("You have already reported this return.", "error")
+        return redirect(url_for("my_requests"))
+
+    database = get_db()
+    changed = database.execute(
+        """
+        UPDATE borrow_requests
+        SET return_reported_at = CURRENT_TIMESTAMP,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND borrower_id = ? AND status = ?
+          AND return_reported_at IS NULL
+        """,
+        (request_id, g.current_user["id"], "approved"),
+    )
+    if changed.rowcount != 1:
+        database.rollback()
+        flash("This request changed before the return could be reported.", "error")
+    else:
+        database.commit()
+        flash("Return reported. The item owner must confirm it.", "success")
+    return redirect(url_for("my_requests"))
+
+
+@app.route("/requests/<int:request_id>/confirm-return", methods=("POST",))
+@login_required
+def confirm_return(request_id):
+    """Complete the return only after an owner confirms the borrower's report."""
+    database = get_db()
+    try:
+        # Serialize confirmations so two submissions cannot both complete a loan.
+        database.execute("BEGIN IMMEDIATE")
+        borrow_request = database.execute(
+            """
+            SELECT borrow_requests.id, borrow_requests.item_id,
+                   borrow_requests.status, borrow_requests.return_reported_at,
+                   borrow_requests.owner_id, items.status AS item_status
+            FROM borrow_requests
+            JOIN items ON items.id = borrow_requests.item_id
+            WHERE borrow_requests.id = ?
+              AND borrow_requests.owner_id = ?
+              AND items.owner_id = ?
+            """,
+            (request_id, g.current_user["id"], g.current_user["id"]),
+        ).fetchone()
+        if borrow_request is None:
+            database.rollback()
+            abort(404)
+        if borrow_request["status"] != "approved":
+            database.rollback()
+            flash("Only approved requests can be confirmed as returned.", "error")
+            return redirect(url_for("incoming_requests"))
+        if borrow_request["return_reported_at"] is None:
+            database.rollback()
+            flash("The borrower must report the return before you can confirm it.", "error")
+            return redirect(url_for("incoming_requests"))
+        if borrow_request["item_status"] != "borrowed":
+            database.rollback()
+            flash("This item is no longer marked as borrowed; no return was completed.", "error")
+            return redirect(url_for("incoming_requests"))
+
+        changed = database.execute(
+            """
+            UPDATE borrow_requests
+            SET status = ?, returned_at = CURRENT_TIMESTAMP,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ? AND owner_id = ? AND status = ?
+              AND return_reported_at IS NOT NULL
+            """,
+            ("returned", request_id, g.current_user["id"], "approved"),
+        )
+        if changed.rowcount != 1:
+            database.rollback()
+            flash("This request changed before the return could be confirmed.", "error")
+            return redirect(url_for("incoming_requests"))
+
+        changed = database.execute(
+            """
+            UPDATE items
+            SET status = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ? AND owner_id = ? AND status = ?
+            """,
+            ("available", borrow_request["item_id"], g.current_user["id"], "borrowed"),
+        )
+        if changed.rowcount != 1:
+            database.rollback()
+            flash("The item changed before the return could be confirmed; no changes were saved.", "error")
+            return redirect(url_for("incoming_requests"))
+
+        database.commit()
+    except Exception:
+        database.rollback()
+        raise
+
+    flash("Return confirmed. The item is available again.", "success")
+    return redirect(url_for("incoming_requests"))
 
 
 def finish_pending_request(request_id, new_status, actor):

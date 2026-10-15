@@ -524,6 +524,16 @@ small {
     color: #285476;
 }
 
+.status-returned {
+    background: #e4f0eb;
+    color: #1d625c;
+}
+
+.status-overdue {
+    background: #fff0ec;
+    color: #8e3427;
+}
+
 .status-rejected,
 .status-cancelled {
     background: #f0efeb;
@@ -698,6 +708,53 @@ small {
 .request-facts {
     max-width: 500px;
     margin-bottom: 16px;
+}
+
+.overdue-note {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin: 0 0 14px;
+    color: #8e3427;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.awaiting-note,
+.history-empty {
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+.history-section {
+    margin-top: 40px;
+}
+
+.history-section > h2 {
+    margin-bottom: 14px;
+    font-size: 1.5rem;
+    letter-spacing: -0.04em;
+}
+
+.history-card h3 {
+    margin: 0 0 4px;
+    font-size: 1.1rem;
+}
+
+.history-card h3 a {
+    color: var(--navy);
+    text-decoration: none;
+}
+
+.history-card h3 a:hover {
+    color: var(--teal-dark);
+    text-decoration: underline;
+}
+
+.returned-date {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.9rem;
 }
 
 .request-form {

@@ -34,6 +34,21 @@
         <p class="stat-number">{{ lent_out_count }}</p>
         <a href="{{ url_for('my_items') }}">View your items</a>
     </article>
+    <article class="stat-card">
+        <p class="eyebrow">Items I’m currently borrowing</p>
+        <p class="stat-number">{{ currently_borrowing_count }}</p>
+        <a href="{{ url_for('my_requests') }}">View my requests</a>
+    </article>
+    <article class="stat-card">
+        <p class="eyebrow">Overdue items I lent out</p>
+        <p class="stat-number">{{ overdue_lent_count }}</p>
+        <a href="{{ url_for('incoming_requests') }}">View incoming requests</a>
+    </article>
+    <article class="stat-card">
+        <p class="eyebrow">Overdue items I borrowed</p>
+        <p class="stat-number">{{ overdue_borrowed_count }}</p>
+        <a href="{{ url_for('my_requests') }}">View my requests</a>
+    </article>
 </section>
 <div class="hero-actions dashboard-actions">
     <a class="button button-primary" href="{{ url_for('add_item') }}">Add an item</a>

@@ -75,7 +75,10 @@ timestamps. The database is created when the app starts.
 - Borrow requests use a proposed return date no more than 30 days ahead.
   Approval is an atomic transaction: it marks the item borrowed, sets the due
   date from the proposal, and rejects competing pending requests. Return and
-  overdue handling are not included.
+  overdue handling are handled in two steps: the borrower reports a return and
+  the item owner confirms it. Overdue status is calculated at query time rather
+  than stored. Existing databases get the return-report timestamp column
+  through an idempotent startup migration.
 - Owners can approve or reject incoming pending requests; borrowers can cancel
   their own pending requests. The database's partial unique index permits only
   one pending request per borrower/item pair.

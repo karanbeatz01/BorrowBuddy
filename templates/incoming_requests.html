@@ -22,6 +22,12 @@
                     </div>
                     <span class="status-pill status-{{ borrow_request['status'] }}">{{ borrow_request['status']|capitalize }}</span>
                 </div>
+                {% if borrow_request['is_overdue'] %}
+                    <p class="overdue-note">
+                        <span class="status-pill status-overdue">Overdue</span>
+                        {{ borrow_request['days_overdue'] }} {{ 'day' if borrow_request['days_overdue'] == 1 else 'days' }} overdue
+                    </p>
+                {% endif %}
                 <dl class="item-facts request-facts">
                     <div><dt>Proposed return</dt><dd>{{ borrow_request['proposed_return_date'] }}</dd></div>
                     {% if borrow_request['due_date'] %}
@@ -39,6 +45,14 @@
                             <button class="button button-secondary" type="submit">Reject</button>
                         </form>
                     </div>
+                {% elif borrow_request['status'] == 'approved' and borrow_request['return_reported_at'] %}
+                    <p class="pending-note">Return reported by the borrower. Confirm it after you have received the item.</p>
+                    <form method="post" action="{{ url_for('confirm_return', request_id=borrow_request['id']) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="button button-primary" type="submit">Confirm return</button>
+                    </form>
+                {% elif borrow_request['status'] == 'approved' %}
+                    <p class="awaiting-note">Waiting for the borrower to report the return.</p>
                 {% endif %}
             </article>
         {% endfor %}
@@ -50,4 +64,26 @@
         <p>Requests for your items will appear here.</p>
     </section>
 {% endif %}
+
+<section class="history-section">
+    <h2>History</h2>
+    {% if history_requests %}
+        <div class="request-list" aria-label="Returned items">
+            {% for borrow_request in history_requests %}
+                <article class="request-card history-card">
+                    <div class="request-heading">
+                        <div>
+                            <h3><a href="{{ url_for('item_detail', item_id=borrow_request['item_id']) }}">{{ borrow_request['item_name'] }}</a></h3>
+                            <p>Borrowed by {{ borrow_request['borrower_username'] }}</p>
+                        </div>
+                        <span class="status-pill status-returned">Returned</span>
+                    </div>
+                    <p class="returned-date">Return confirmed {{ borrow_request['returned_at'] }}</p>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="history-empty">Confirmed returns will appear here.</p>
+    {% endif %}
+</section>
 {% endblock %}

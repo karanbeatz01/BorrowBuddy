@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS borrow_requests (
     proposed_return_date TEXT,
     due_date TEXT,
     returned_at TEXT,
+    return_reported_at TEXT,
     status TEXT NOT NULL DEFAULT 'pending'
         CHECK (status IN ('pending', 'approved', 'rejected', 'cancelled', 'returned')),
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -88,6 +89,14 @@ def init_db(app):
     try:
         connection.execute("PRAGMA foreign_keys = ON")
         connection.executescript(SCHEMA)
+        # Existing databases get this Phase 4 field without losing user data.
+        columns = {
+            row[1] for row in connection.execute("PRAGMA table_info(borrow_requests)")
+        }
+        if "return_reported_at" not in columns:
+            connection.execute(
+                "ALTER TABLE borrow_requests ADD COLUMN return_reported_at TEXT"
+            )
         connection.commit()
     finally:
         connection.close()
