@@ -31,6 +31,8 @@ export BORROWBUDDY_SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token
 python app.py
 ```
 
+### Creating an admin
+
 Open <http://127.0.0.1:5001>, register your account, then stop the server with
 Control-C. The app listens on port 5001 so it does not conflict with macOS
 AirPlay using port 5000. In the same Terminal session, grant your account admin
