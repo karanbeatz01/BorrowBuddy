@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS users (
     email TEXT NOT NULL COLLATE NOCASE UNIQUE
         CHECK (length(trim(email)) <= 254),
     password_hash TEXT NOT NULL,
+    is_admin INTEGER NOT NULL DEFAULT 0 CHECK (is_admin IN (0, 1)),
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -96,6 +97,14 @@ def init_db(app):
         if "return_reported_at" not in columns:
             connection.execute(
                 "ALTER TABLE borrow_requests ADD COLUMN return_reported_at TEXT"
+            )
+        user_columns = {
+            row[1] for row in connection.execute("PRAGMA table_info(users)")
+        }
+        if "is_admin" not in user_columns:
+            connection.execute(
+                "ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0 "
+                "CHECK (is_admin IN (0, 1))"
             )
         connection.commit()
     finally:

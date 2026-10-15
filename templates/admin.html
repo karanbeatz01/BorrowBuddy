@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Admin · BorrowBuddy{% endblock %}
+
+{% block content %}
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">Administration</p>
+        <h1>Admin overview</h1>
+        <p>Account totals and item counts. Password hashes are never shown here.</p>
+    </div>
+    <a class="button button-primary" href="{{ url_for('admin_items') }}">Manage all items</a>
+</section>
+
+<section class="admin-summary" aria-label="Admin totals">
+    <p><strong>{{ total_user_count }}</strong> total users</p>
+</section>
+
+<div class="admin-table-wrap">
+    <table class="admin-table">
+        <caption>Registered users</caption>
+        <thead>
+            <tr><th scope="col">Username</th><th scope="col">Created</th><th scope="col">Items</th></tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+                <tr>
+                    <td>{{ user['username'] }}</td>
+                    <td>{{ user['created_at'] }}</td>
+                    <td>{{ user['item_count'] }}</td>
+                </tr>
+            {% else %}
+                <tr><td colspan="3">No users found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

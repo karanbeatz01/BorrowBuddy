@@ -20,6 +20,9 @@
                     <a href="{{ url_for('add_item') }}">Add item</a>
                     <a href="{{ url_for('incoming_requests') }}">Incoming</a>
                     <a href="{{ url_for('my_requests') }}">My requests</a>
+                    {% if g.current_user['is_admin'] %}
+                        <a href="{{ url_for('admin_dashboard') }}">Admin</a>
+                    {% endif %}
                     <form action="{{ url_for('logout') }}" method="post" class="inline-form">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button class="nav-button" type="submit">Log out</button>

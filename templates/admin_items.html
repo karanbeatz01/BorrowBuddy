@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}All items · BorrowBuddy{% endblock %}
+
+{% block content %}
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">Administration</p>
+        <h1>All items</h1>
+        <p>Review listing owners and statuses. Deleting an item also removes its request history.</p>
+    </div>
+    <a class="button button-secondary" href="{{ url_for('admin_dashboard') }}">Admin overview</a>
+</section>
+
+{% if items %}
+    <div class="admin-table-wrap">
+        <table class="admin-table">
+            <caption>Campus listings</caption>
+            <thead>
+                <tr>
+                    <th scope="col">Item</th><th scope="col">Owner</th>
+                    <th scope="col">Status</th><th scope="col">Category</th>
+                    <th scope="col">Location</th><th scope="col">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                    <tr>
+                        <td>{{ item['name'] }}</td>
+                        <td>{{ item['owner_username'] }}</td>
+                        <td><span class="status-pill status-{{ item['status'] }}">{{ item['status']|capitalize }}</span></td>
+                        <td>{{ item['category'] }}</td>
+                        <td>{{ item['location'] }}</td>
+                        <td>
+                            {% if item['status'] == 'borrowed' %}
+                                <p class="admin-warning">Deleting this borrowed item also permanently removes its borrow-request and return history.</p>
+                            {% endif %}
+                            <form method="post" action="{{ url_for('admin_delete_item', item_id=item['id']) }}" class="admin-delete-form">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                {% if item['status'] == 'borrowed' %}
+                                    <label class="admin-confirm">
+                                        <input type="checkbox" name="confirm_borrowed_delete" value="yes" required>
+                                        I understand its history will be deleted
+                                    </label>
+                                {% endif %}
+                                <button class="button button-danger" type="submit">Delete item</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <section class="empty-state">
+        <h2>No items yet</h2>
+        <p>Campus listings will appear here.</p>
+    </section>
+{% endif %}
+{% endblock %}

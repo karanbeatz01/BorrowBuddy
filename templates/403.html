@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}Not allowed · BorrowBuddy{% endblock %}
+
+{% block content %}
+<section class="error-card">
+    <p class="eyebrow">403 · Not allowed</p>
+    <h1>You can’t do that</h1>
+    <p>You don’t have permission to view or change this page.</p>
+    <a class="button button-primary" href="{{ url_for('index') }}">Return home</a>
+</section>
+{% endblock %}

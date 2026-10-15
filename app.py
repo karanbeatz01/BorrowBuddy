@@ -1,11 +1,15 @@
 """BorrowBuddy Phase 1: account access and a protected dashboard."""
 
+import hmac
 import os
 import re
 import sqlite3
+import time
 from datetime import date, datetime, timedelta
 from functools import wraps
+from threading import Lock
 
+import click
 from flask import Flask, abort, flash, g, redirect, render_template, request, session, url_for
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -22,9 +26,20 @@ ITEM_CATEGORIES = (
 )
 ITEM_CONDITIONS = ("new", "good", "fair", "worn")
 MAX_REQUEST_DAYS = 30
+MAX_LOGIN_ATTEMPTS = 5
+LOGIN_WINDOW_SECONDS = 15 * 60
+LOGIN_LOCKOUT_SECONDS = 15 * 60
+LOGIN_FAILURES = {}
+LOGIN_FAILURES_LOCK = Lock()
 
 
-app = Flask(__name__)
+instance_path = os.path.abspath(
+    os.environ.get(
+        "BORROWBUDDY_INSTANCE_PATH",
+        os.path.join(os.path.dirname(__file__), "instance"),
+    )
+)
+app = Flask(__name__, instance_path=instance_path)
 
 # Flask signs login sessions with this key, so do not store the key in source code.
 secret_key = os.environ.get("BORROWBUDDY_SECRET_KEY")
@@ -40,8 +55,14 @@ app.config.update(
         "BORROWBUDDY_DATABASE",
         os.path.join(app.instance_path, "borrowbuddy.sqlite"),
     ),
+    DEBUG=False,
+    INVITE_CODE=os.environ.get("BORROWBUDDY_INVITE_CODE"),
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=os.environ.get(
+        "BORROWBUDDY_COOKIE_SECURE", ""
+    ).strip().lower() in {"1", "true", "yes", "on"},
+    PERMANENT_SESSION_LIFETIME=timedelta(hours=8),
 )
 CSRFProtect(app)
 
@@ -50,13 +71,43 @@ init_db(app)
 app.teardown_appcontext(close_db)
 
 
+@app.after_request
+def add_security_headers(response):
+    """Set browser-side protections consistently, including on error responses."""
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; "
+        "form-action 'self'; object-src 'none'; script-src 'self'; "
+        "style-src 'self'; img-src 'self' data:"
+    )
+    return response
+
+
+@app.errorhandler(403)
+def forbidden(_error):
+    return render_template("403.html"), 403
+
+
+@app.errorhandler(404)
+def not_found(_error):
+    return render_template("404.html"), 404
+
+
+@app.errorhandler(500)
+def internal_error(_error):
+    # Keep unexpected exception details in the server log, not in the browser.
+    return render_template("500.html"), 500
+
+
 @app.before_request
 def load_logged_in_user():
     """Load the signed-in user's public details for this request."""
     user_id = session.get("user_id")
     g.current_user = (
         get_db()
-        .execute("SELECT id, username FROM users WHERE id = ?", (user_id,))
+        .execute("SELECT id, username, is_admin FROM users WHERE id = ?", (user_id,))
         .fetchone()
         if user_id is not None
         else None
@@ -78,6 +129,34 @@ def login_required(view):
     return wrapped_view
 
 
+def admin_required(view):
+    """Restrict admin pages to a logged-in account with the database role."""
+
+    @wraps(view)
+    def wrapped_view(**kwargs):
+        if g.current_user is None or not g.current_user["is_admin"]:
+            abort(403)
+        return view(**kwargs)
+
+    return wrapped_view
+
+
+@app.cli.command("make-admin")
+@click.argument("username")
+def make_admin(username):
+    """Grant the admin role to an existing account by username."""
+    database = get_db()
+    cursor = database.execute(
+        "UPDATE users SET is_admin = 1 WHERE username = ? COLLATE NOCASE",
+        (username.strip(),),
+    )
+    if cursor.rowcount != 1:
+        database.rollback()
+        raise click.ClickException(f"No account found for username '{username}'.")
+    database.commit()
+    click.echo(f"Admin role granted to {username}.")
+
+
 def valid_email(email):
     """Apply a simple shape check without relying on an external email service."""
     return bool(re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email))
@@ -95,8 +174,14 @@ def register():
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
         confirm_password = request.form.get("confirm_password", "")
+        invite_code = request.form.get("invite_code", "")
 
-        if not re.fullmatch(r"[A-Za-z0-9_]{3,30}", username):
+        if (
+            app.config["INVITE_CODE"] is not None
+            and not hmac.compare_digest(invite_code, app.config["INVITE_CODE"])
+        ):
+            flash("Enter the valid invite code to register.", "error")
+        elif not re.fullmatch(r"[A-Za-z0-9_]{3,30}", username):
             flash(
                 "Username must be 3-30 characters using letters, numbers, or underscores.",
                 "error",
@@ -140,9 +225,19 @@ def register():
                     flash("Your account is ready. Please log in.", "success")
                     return redirect(url_for("login"))
 
-        return render_template("register.html", username=username, email=email), 400
+        return render_template(
+            "register.html",
+            username=username,
+            email=email,
+            invite_code_required=app.config["INVITE_CODE"] is not None,
+        ), 400
 
-    return render_template("register.html", username="", email="")
+    return render_template(
+        "register.html",
+        username="",
+        email="",
+        invite_code_required=app.config["INVITE_CODE"] is not None,
+    )
 
 
 @app.route("/login", methods=("GET", "POST"))
@@ -150,6 +245,28 @@ def login():
     if request.method == "POST":
         identity = request.form.get("identity", "").strip()
         password = request.form.get("password", "")
+        attempt_key = (identity.casefold(), request.remote_addr or "unknown")
+        now = time.monotonic()
+        # This small in-process sliding window needs no dependency, but resets
+        # on restart and is not shared between multiple server workers.
+        with LOGIN_FAILURES_LOCK:
+            for key, state in list(LOGIN_FAILURES.items()):
+                state["failures"] = [
+                    failed_at
+                    for failed_at in state["failures"]
+                    if now - failed_at < LOGIN_WINDOW_SECONDS
+                ]
+                if (
+                    now >= state["locked_until"]
+                    and not state["failures"]
+                ):
+                    LOGIN_FAILURES.pop(key, None)
+            attempt = LOGIN_FAILURES.get(attempt_key)
+            is_locked_out = attempt is not None and attempt["locked_until"] > now
+        if is_locked_out:
+            flash("Too many login attempts. Try again later.", "error")
+            return render_template("login.html"), 429
+
         user = get_db().execute(
             """
             SELECT id, username, password_hash FROM users
@@ -160,12 +277,38 @@ def login():
 
         # Keep the same message for an unknown account and a wrong password.
         if user is None or not check_password_hash(user["password_hash"], password):
+            with LOGIN_FAILURES_LOCK:
+                failure_time = time.monotonic()
+                attempt = LOGIN_FAILURES.get(attempt_key)
+                if attempt is not None and attempt["locked_until"] > failure_time:
+                    is_locked_out = True
+                else:
+                    is_locked_out = False
+                    if attempt is None:
+                        attempt = {"failures": [], "locked_until": 0.0}
+                    attempt["failures"] = [
+                        failed_at
+                        for failed_at in attempt["failures"]
+                        if failure_time - failed_at < LOGIN_WINDOW_SECONDS
+                    ]
+                    attempt["failures"].append(failure_time)
+                    if len(attempt["failures"]) >= MAX_LOGIN_ATTEMPTS:
+                        attempt["locked_until"] = failure_time + LOGIN_LOCKOUT_SECONDS
+                    LOGIN_FAILURES[attempt_key] = attempt
+            if is_locked_out:
+                flash("Too many login attempts. Try again later.", "error")
+                return render_template("login.html"), 429
             flash("Invalid username/email or password.", "error")
             return render_template("login.html"), 401
 
+        with LOGIN_FAILURES_LOCK:
+            LOGIN_FAILURES.pop(attempt_key, None)
         session.clear()
         session["user_id"] = user["id"]
+        session.permanent = True
         flash("You are now logged in.", "success")
+        # Do not accept a "next" URL from the request: always use a known
+        # internal endpoint to prevent external open redirects.
         return redirect(url_for("dashboard"))
 
     return render_template("login.html")
@@ -236,6 +379,137 @@ def dashboard():
         overdue_lent_count=overdue_lent_count,
         overdue_borrowed_count=overdue_borrowed_count,
     )
+
+
+@app.route("/admin")
+@admin_required
+def admin_dashboard():
+    database = get_db()
+    users = database.execute(
+        """
+        SELECT users.id, users.username, users.created_at,
+               COUNT(items.id) AS item_count
+        FROM users
+        LEFT JOIN items ON items.owner_id = users.id
+        GROUP BY users.id, users.username, users.created_at
+        ORDER BY users.username COLLATE NOCASE
+        """
+    ).fetchall()
+    return render_template(
+        "admin.html",
+        users=users,
+        total_user_count=len(users),
+    )
+
+
+@app.route("/admin/items")
+@admin_required
+def admin_items():
+    items = get_db().execute(
+        """
+        SELECT items.id, items.name, items.status, items.category,
+               items.location, users.username AS owner_username
+        FROM items
+        JOIN users ON users.id = items.owner_id
+        ORDER BY items.created_at DESC, items.id DESC
+        """
+    ).fetchall()
+    return render_template("admin_items.html", items=items)
+
+
+@app.route("/admin/items/<int:item_id>/delete", methods=("POST",))
+@admin_required
+def admin_delete_item(item_id):
+    database = get_db()
+    try:
+        database.execute("BEGIN IMMEDIATE")
+        # Recheck the database role while holding the write lock; the template
+        # and session are not authority to perform an administrative delete.
+        admin = database.execute(
+            "SELECT is_admin FROM users WHERE id = ? AND is_admin = 1",
+            (g.current_user["id"],),
+        ).fetchone()
+        if admin is None:
+            database.rollback()
+            abort(403)
+
+        item = database.execute(
+            "SELECT id, name, status FROM items WHERE id = ?",
+            (item_id,),
+        ).fetchone()
+        if item is None:
+            database.rollback()
+            abort(404)
+        if (
+            item["status"] == "borrowed"
+            and request.form.get("confirm_borrowed_delete") != "yes"
+        ):
+            database.rollback()
+            flash(
+                "This item is borrowed. Confirm deletion to permanently remove "
+                "its borrow-request and return history.",
+                "error",
+            )
+            return redirect(url_for("admin_items"))
+
+        if item["status"] == "borrowed":
+            # Close any active loan before deleting the item. The foreign-key
+            # cascade then removes its dependent request history with the item.
+            database.execute(
+                """
+                UPDATE borrow_requests
+                SET status = 'returned',
+                    returned_at = COALESCE(returned_at, CURRENT_TIMESTAMP),
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE item_id = ? AND status = 'approved'
+                """,
+                (item_id,),
+            )
+            database.execute(
+                """
+                UPDATE borrow_requests
+                SET status = 'rejected', updated_at = CURRENT_TIMESTAMP
+                WHERE item_id = ? AND status = 'pending'
+                """,
+                (item_id,),
+            )
+            database.execute(
+                """
+                UPDATE items SET status = 'available', updated_at = CURRENT_TIMESTAMP
+                WHERE id = ? AND status = 'borrowed'
+                """,
+                (item_id,),
+            )
+
+        deleted = database.execute(
+            """
+            DELETE FROM items
+            WHERE id = ?
+              AND (status != 'borrowed' OR ? = 'yes')
+              AND EXISTS (
+                  SELECT 1 FROM users
+                  WHERE id = ? AND is_admin = 1
+              )
+            """,
+            (item_id, request.form.get("confirm_borrowed_delete", ""), g.current_user["id"]),
+        )
+        if deleted.rowcount != 1:
+            database.rollback()
+            abort(403)
+        database.commit()
+    except Exception:
+        if database.in_transaction:
+            database.rollback()
+        raise
+
+    if item["status"] == "borrowed":
+        flash(
+            "Borrowed item deleted. Its borrow-request and return history was also removed.",
+            "success",
+        )
+    else:
+        flash("Item deleted.", "success")
+    return redirect(url_for("admin_items"))
 
 
 def item_form_values():

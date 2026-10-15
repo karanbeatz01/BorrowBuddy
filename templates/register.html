@@ -18,6 +18,11 @@
         <input id="email" name="email" type="email" maxlength="254"
                autocomplete="email" value="{{ email }}" required>
 
+        {% if invite_code_required %}
+            <label for="invite_code">Invite code</label>
+            <input id="invite_code" name="invite_code" type="password" autocomplete="off" required>
+        {% endif %}
+
         <label for="password">Password</label>
         <div class="password-field">
             <input id="password" name="password" type="password" minlength="8" maxlength="128"
